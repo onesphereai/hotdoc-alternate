@@ -1,0 +1,78 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Networking Stack - KMS Keys and S3 Buckets
+
+Parameters:
+  Environment:
+    Type: String
+
+Resources:
+  # KMS Key for encryption
+  DataEncryptionKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: !Sub KMS key for HotDoc-Alt ${Environment} data encryption
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action: 'kms:*'
+            Resource: '*'
+          - Sid: Allow services to use the key
+            Effect: Allow
+            Principal:
+              Service:
+                - dynamodb.amazonaws.com
+                - s3.amazonaws.com
+                - lambda.amazonaws.com
+            Action:
+              - 'kms:Decrypt'
+              - 'kms:GenerateDataKey'
+            Resource: '*'
+
+  DataEncryptionKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub alias/hotdoc-alt-${Environment}
+      TargetKeyId: !Ref DataEncryptionKey
+
+  # S3 Bucket for assets and logs
+  AssetsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub hotdoc-alt-assets-${Environment}-${AWS::AccountId}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 30
+
+Outputs:
+  KMSKeyId:
+    Description: KMS Key ID
+    Value: !Ref DataEncryptionKey
+
+  KMSKeyArn:
+    Description: KMS Key ARN
+    Value: !GetAtt DataEncryptionKey.Arn
+
+  AssetsBucketName:
+    Description: Assets S3 Bucket Name
+    Value: !Ref AssetsBucket
+
+  AssetsBucketArn:
+    Description: Assets S3 Bucket ARN
+    Value: !GetAtt AssetsBucket.Arn

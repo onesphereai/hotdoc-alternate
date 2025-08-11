@@ -1,0 +1,285 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Data Stack - DynamoDB Tables and Event Infrastructure
+
+Parameters:
+  Environment:
+    Type: String
+
+Resources:
+  # Practices Table
+  PracticesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub hotdoc-alt-practices-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+        - AttributeName: gsi1pk
+          AttributeType: S
+        - AttributeName: gsi1sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: gsi1pk
+              KeyType: HASH
+            - AttributeName: gsi1sk
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  # Providers Table
+  ProvidersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub hotdoc-alt-providers-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  # Sessions Table
+  SessionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub hotdoc-alt-sessions-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+        - AttributeName: gsi1pk
+          AttributeType: S
+        - AttributeName: gsi1sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: gsi1pk
+              KeyType: HASH
+            - AttributeName: gsi1sk
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      SSESpecification:
+        SSEEnabled: true
+
+  # Bookings Table
+  BookingsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub hotdoc-alt-bookings-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+        - AttributeName: gsi1pk
+          AttributeType: S
+        - AttributeName: gsi1sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: gsi1pk
+              KeyType: HASH
+            - AttributeName: gsi1sk
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  # Patients Table
+  PatientsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub hotdoc-alt-patients-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  # Recalls Table
+  RecallsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub hotdoc-alt-recalls-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      SSESpecification:
+        SSEEnabled: true
+
+  # Events Table (Audit Log)
+  EventsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub hotdoc-alt-events-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  # EventBridge Event Bus
+  EventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: !Sub hotdoc-alt-events-${Environment}
+
+  # Booking Queue
+  BookingQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub hotdoc-alt-bookings-${Environment}
+      MessageRetentionPeriod: 1209600  # 14 days
+      VisibilityTimeout: 300
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt BookingDLQ.Arn
+        maxReceiveCount: 3
+
+  BookingDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub hotdoc-alt-bookings-dlq-${Environment}
+      MessageRetentionPeriod: 1209600
+
+  # Notification Queue
+  NotificationQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub hotdoc-alt-notifications-${Environment}
+      MessageRetentionPeriod: 345600  # 4 days
+      VisibilityTimeout: 60
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt NotificationDLQ.Arn
+        maxReceiveCount: 3
+
+  NotificationDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub hotdoc-alt-notifications-dlq-${Environment}
+      MessageRetentionPeriod: 1209600
+
+Outputs:
+  PracticesTableName:
+    Description: Practices Table Name
+    Value: !Ref PracticesTable
+
+  ProvidersTableName:
+    Description: Providers Table Name
+    Value: !Ref ProvidersTable
+
+  SessionsTableName:
+    Description: Sessions Table Name
+    Value: !Ref SessionsTable
+
+  BookingsTableName:
+    Description: Bookings Table Name
+    Value: !Ref BookingsTable
+
+  PatientsTableName:
+    Description: Patients Table Name
+    Value: !Ref PatientsTable
+
+  RecallsTableName:
+    Description: Recalls Table Name
+    Value: !Ref RecallsTable
+
+  EventsTableName:
+    Description: Events Table Name
+    Value: !Ref EventsTable
+
+  EventBusName:
+    Description: Event Bus Name
+    Value: !Ref EventBus
+
+  EventBusArn:
+    Description: Event Bus ARN
+    Value: !GetAtt EventBus.Arn
+
+  BookingQueueUrl:
+    Description: Booking Queue URL
+    Value: !Ref BookingQueue
+
+  NotificationQueueUrl:
+    Description: Notification Queue URL
+    Value: !Ref NotificationQueue

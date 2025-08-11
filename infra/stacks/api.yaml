@@ -1,0 +1,235 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: API Stack - API Gateway and Lambda Functions
+
+Parameters:
+  Environment:
+    Type: String
+  PracticesTableName:
+    Type: String
+  ProvidersTableName:
+    Type: String
+  SessionsTableName:
+    Type: String
+  BookingsTableName:
+    Type: String
+  PatientsTableName:
+    Type: String
+  UserPoolId:
+    Type: String
+  UserPoolArn:
+    Type: String
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 30
+    Tracing: Active
+    MemorySize: 512
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        PRACTICES_TABLE: !Ref PracticesTableName
+        PROVIDERS_TABLE: !Ref ProvidersTableName
+        SESSIONS_TABLE: !Ref SessionsTableName
+        BOOKINGS_TABLE: !Ref BookingsTableName
+        PATIENTS_TABLE: !Ref PatientsTableName
+
+Resources:
+  # API Gateway
+  Api:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      Name: !Sub hotdoc-alt-api-${Environment}
+      CorsConfiguration:
+        AllowOrigins:
+          - '*'
+        AllowHeaders:
+          - '*'
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        MaxAge: 86400
+      Auth:
+        Authorizers:
+          CognitoAuthorizer:
+            IdentitySource: $request.header.Authorization
+            JwtConfiguration:
+              issuer: !Sub https://cognito-idp.ap-southeast-2.amazonaws.com/${UserPoolId}
+              audience:
+                - !Ref UserPoolId
+
+  # Practices Functions
+  CreatePracticeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub hotdoc-alt-create-practice-${Environment}
+      CodeUri: ../../services/core-api
+      Handler: dist/handlers/practices/create.handler
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref PracticesTableName
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Path: /v1/practices
+            Method: POST
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+  GetPracticesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub hotdoc-alt-get-practices-${Environment}
+      CodeUri: ../../services/core-api
+      Handler: dist/handlers/practices/list.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref PracticesTableName
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Path: /v1/practices
+            Method: GET
+
+  GetPracticeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub hotdoc-alt-get-practice-${Environment}
+      CodeUri: ../../services/core-api
+      Handler: dist/handlers/practices/get.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref PracticesTableName
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Path: /v1/practices/{practiceId}
+            Method: GET
+
+  # Providers Functions
+  CreateProviderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub hotdoc-alt-create-provider-${Environment}
+      CodeUri: ../../services/core-api
+      Handler: dist/handlers/providers/create.handler
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref ProvidersTableName
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Path: /v1/providers
+            Method: POST
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+  GetProviderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub hotdoc-alt-get-provider-${Environment}
+      CodeUri: ../../services/core-api
+      Handler: dist/handlers/providers/get.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref ProvidersTableName
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Path: /v1/providers/{providerId}
+            Method: GET
+
+  # Slots Functions
+  GetSlotsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub hotdoc-alt-get-slots-${Environment}
+      CodeUri: ../../services/core-api
+      Handler: dist/handlers/slots/get.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref SessionsTableName
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Path: /v1/slots
+            Method: GET
+
+  # Bookings Functions
+  CreateBookingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub hotdoc-alt-create-booking-${Environment}
+      CodeUri: ../../services/core-api
+      Handler: dist/handlers/bookings/create.handler
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref BookingsTableName
+        - DynamoDBWritePolicy:
+            TableName: !Ref SessionsTableName
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Path: /v1/bookings
+            Method: POST
+
+  GetBookingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub hotdoc-alt-get-booking-${Environment}
+      CodeUri: ../../services/core-api
+      Handler: dist/handlers/bookings/get.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref BookingsTableName
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Path: /v1/bookings/{bookingId}
+            Method: GET
+
+  ConfirmBookingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub hotdoc-alt-confirm-booking-${Environment}
+      CodeUri: ../../services/core-api
+      Handler: dist/handlers/bookings/confirm.handler
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref BookingsTableName
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Path: /v1/bookings/{bookingId}/confirm
+            Method: POST
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway URL
+    Value: !Sub https://${Api}.execute-api.ap-southeast-2.amazonaws.com
+
+  ApiId:
+    Description: API Gateway ID
+    Value: !Ref Api

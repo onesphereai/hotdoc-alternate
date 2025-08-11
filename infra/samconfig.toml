@@ -1,0 +1,29 @@
+version = 0.1
+
+[default.global.parameters]
+stack_name = "hotdoc-alt"
+
+[default.build.parameters]
+cached = true
+parallel = true
+
+[default.deploy.parameters]
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+confirm_changeset = true
+resolve_s3 = true
+s3_prefix = "hotdoc-alt"
+region = "ap-southeast-2"
+parameter_overrides = "Environment=\"dev\""
+
+[dev.deploy.parameters]
+stack_name = "hotdoc-alt-dev"
+parameter_overrides = "Environment=\"dev\""
+
+[staging.deploy.parameters]
+stack_name = "hotdoc-alt-staging"
+parameter_overrides = "Environment=\"staging\""
+
+[prod.deploy.parameters]
+stack_name = "hotdoc-alt-prod"
+parameter_overrides = "Environment=\"prod\""
+confirm_changeset = true

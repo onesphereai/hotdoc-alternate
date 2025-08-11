@@ -1,0 +1,160 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Identity Stack - Cognito User Pools and Clients
+
+Parameters:
+  Environment:
+    Type: String
+
+Resources:
+  # Patient User Pool
+  PatientUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub hotdoc-alt-patients-${Environment}
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Required: true
+          Mutable: false
+        - Name: phone_number
+          AttributeDataType: String
+          Required: false
+          Mutable: true
+        - Name: given_name
+          AttributeDataType: String
+          Required: true
+          Mutable: true
+        - Name: family_name
+          AttributeDataType: String
+          Required: true
+          Mutable: true
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      PasswordPolicy:
+        MinimumLength: 8
+        RequireUppercase: true
+        RequireLowercase: true
+        RequireNumbers: true
+        RequireSymbols: false
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      EmailConfiguration:
+        EmailSendingAccount: COGNITO_DEFAULT
+
+  # Practice Admin User Pool
+  AdminUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub hotdoc-alt-admins-${Environment}
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Required: true
+          Mutable: false
+        - Name: tenantId
+          AttributeDataType: String
+          DeveloperOnlyAttribute: false
+          Mutable: false
+        - Name: role
+          AttributeDataType: String
+          DeveloperOnlyAttribute: false
+          Mutable: true
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      PasswordPolicy:
+        MinimumLength: 10
+        RequireUppercase: true
+        RequireLowercase: true
+        RequireNumbers: true
+        RequireSymbols: true
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      EmailConfiguration:
+        EmailSendingAccount: COGNITO_DEFAULT
+      MfaConfiguration: OPTIONAL
+      EnabledMfas:
+        - SOFTWARE_TOKEN_MFA
+
+  # Patient App Client
+  PatientUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub hotdoc-alt-patient-client-${Environment}
+      UserPoolId: !Ref PatientUserPool
+      GenerateSecret: false
+      RefreshTokenValidity: 30
+      AccessTokenValidity: 1
+      IdTokenValidity: 1
+      TokenValidityUnits:
+        RefreshToken: days
+        AccessToken: hours
+        IdToken: hours
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      PreventUserExistenceErrors: ENABLED
+      SupportedIdentityProviders:
+        - COGNITO
+
+  # Admin App Client
+  AdminUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub hotdoc-alt-admin-client-${Environment}
+      UserPoolId: !Ref AdminUserPool
+      GenerateSecret: false
+      RefreshTokenValidity: 1
+      AccessTokenValidity: 1
+      IdTokenValidity: 1
+      TokenValidityUnits:
+        RefreshToken: days
+        AccessToken: hours
+        IdToken: hours
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      PreventUserExistenceErrors: ENABLED
+      SupportedIdentityProviders:
+        - COGNITO
+
+Outputs:
+  PatientUserPoolId:
+    Description: Patient User Pool ID
+    Value: !Ref PatientUserPool
+
+  PatientUserPoolArn:
+    Description: Patient User Pool ARN
+    Value: !GetAtt PatientUserPool.Arn
+
+  AdminUserPoolId:
+    Description: Admin User Pool ID
+    Value: !Ref AdminUserPool
+
+  AdminUserPoolArn:
+    Description: Admin User Pool ARN
+    Value: !GetAtt AdminUserPool.Arn
+
+  PatientUserPoolClientId:
+    Description: Patient User Pool Client ID
+    Value: !Ref PatientUserPoolClient
+
+  AdminUserPoolClientId:
+    Description: Admin User Pool Client ID
+    Value: !Ref AdminUserPoolClient
+
+  # For API Gateway authorizer compatibility
+  UserPoolId:
+    Description: Primary User Pool ID (Admin)
+    Value: !Ref AdminUserPool
+
+  UserPoolArn:
+    Description: Primary User Pool ARN (Admin)
+    Value: !GetAtt AdminUserPool.Arn

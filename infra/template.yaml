@@ -1,0 +1,86 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: HotDoc-Alternate MVP Infrastructure
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Environment name
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 30
+    Tracing: Active
+    MemorySize: 512
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+
+Resources:
+  # Nested Stacks
+  NetworkingStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./stacks/networking.yaml
+      Parameters:
+        Environment: !Ref Environment
+
+  IdentityStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./stacks/identity.yaml
+      Parameters:
+        Environment: !Ref Environment
+
+  DataStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./stacks/data.yaml
+      Parameters:
+        Environment: !Ref Environment
+
+  ApiStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./stacks/api.yaml
+      Parameters:
+        Environment: !Ref Environment
+        PracticesTableName: !GetAtt DataStack.Outputs.PracticesTableName
+        ProvidersTableName: !GetAtt DataStack.Outputs.ProvidersTableName
+        SessionsTableName: !GetAtt DataStack.Outputs.SessionsTableName
+        BookingsTableName: !GetAtt DataStack.Outputs.BookingsTableName
+        PatientsTableName: !GetAtt DataStack.Outputs.PatientsTableName
+        UserPoolId: !GetAtt IdentityStack.Outputs.UserPoolId
+        UserPoolArn: !GetAtt IdentityStack.Outputs.UserPoolArn
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway URL
+    Value: !GetAtt ApiStack.Outputs.ApiUrl
+    Export:
+      Name: !Sub ${AWS::StackName}-ApiUrl
+
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !GetAtt IdentityStack.Outputs.UserPoolId
+    Export:
+      Name: !Sub ${AWS::StackName}-UserPoolId
+
+  AdminUserPoolClientId:
+    Description: Cognito Admin Client ID
+    Value: !GetAtt IdentityStack.Outputs.AdminUserPoolClientId
+    Export:
+      Name: !Sub ${AWS::StackName}-AdminClientId
+
+  PatientUserPoolClientId:
+    Description: Cognito Patient Client ID
+    Value: !GetAtt IdentityStack.Outputs.PatientUserPoolClientId
+    Export:
+      Name: !Sub ${AWS::StackName}-PatientClientId
