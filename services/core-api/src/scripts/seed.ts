@@ -1,5 +1,5 @@
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
-import { dynamoDb, generateId } from '@hotdoc-alt/lib';
+import { dynamoDb, generateId } from '../lib';
 
 const seedData = async () => {
   const now = new Date().toISOString();

@@ -1,7 +1,7 @@
 import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
-import { PracticeSchema } from '@hotdoc-alt/models';
-import { dynamoDb, generateId, buildKey, Logger, ValidationError, extractTenantId } from '@hotdoc-alt/lib';
+import { PracticeSchema } from '../../models';
+import { dynamoDb, generateId, buildKey, Logger, ValidationError, extractTenantId } from '../../lib';
 
 export const handler = async (
   event: APIGatewayProxyEventV2
