@@ -1,56 +1,79 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
-import { ProtectedRoute } from './components/ProtectedRoute';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoginForm } from './components/LoginForm';
+import { PracticeSignup } from './components/PracticeSignup';
 import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { Practices } from './pages/Practices';
 import { Providers } from './pages/Providers';
+import { DebugPage } from './components/DebugPage';
 
-const authConfig = {
-  userPoolId: import.meta.env.VITE_USER_POOL_ID || '',
-  userPoolClientId: import.meta.env.VITE_USER_POOL_CLIENT_ID || '',
-  region: 'ap-southeast-2'
-};
+function AppRoutes() {
+  const { user, loading } = useAuth();
 
-function App() {
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   return (
-    <AuthProvider config={authConfig}>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<LoginForm />} />
+    <Routes>
+      <Route path="/debug" element={<DebugPage />} />
+      <Route path="/login" element={<LoginForm />} />
+      
+      {/* Show signup if no user is logged in */}
+      {!user && (
+        <>
+          <Route path="/signup" element={<PracticeSignup />} />
+          <Route path="/" element={<Navigate to="/signup" replace />} />
+        </>
+      )}
+
+      {/* Protected routes for authenticated users */}
+      {user && (
+        <>
           <Route 
             path="/dashboard" 
             element={
-              <ProtectedRoute>
-                <Layout>
-                  <Dashboard />
-                </Layout>
-              </ProtectedRoute>
+              <Layout>
+                <Dashboard />
+              </Layout>
             } 
           />
           <Route 
             path="/practices" 
             element={
-              <ProtectedRoute>
-                <Layout>
-                  <Practices />
-                </Layout>
-              </ProtectedRoute>
+              <Layout>
+                <Practices />
+              </Layout>
             } 
           />
           <Route 
             path="/providers" 
             element={
-              <ProtectedRoute>
-                <Layout>
-                  <Providers />
-                </Layout>
-              </ProtectedRoute>
+              <Layout>
+                <Providers />
+              </Layout>
             } 
           />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
+        </>
+      )}
+      
+      {/* Fallback routes */}
+      <Route path="*" element={<Navigate to={user ? "/dashboard" : "/signup"} replace />} />
+    </Routes>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <AppRoutes />
       </Router>
     </AuthProvider>
   );

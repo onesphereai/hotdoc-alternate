@@ -10,21 +10,31 @@ export const handler = async (
   });
 
   try {
-    logger.info('Listing practices', {
-      table: process.env.PRACTICES_TABLE
+    const practiceId = event.queryStringParameters?.practiceId;
+    
+    logger.info('Listing providers', {
+      table: process.env.PROVIDERS_TABLE,
+      practiceId
     });
 
-    // Scan for all practices with PRACTICE# prefix
-    const result = await dynamoDb.send(new ScanCommand({
-      TableName: process.env.PRACTICES_TABLE,
+    let scanParams: any = {
+      TableName: process.env.PROVIDERS_TABLE,
       FilterExpression: 'begins_with(pk, :pk)',
       ExpressionAttributeValues: {
-        ':pk': 'PRACTICE#'
+        ':pk': 'PROVIDER#'
       }
-    }));
+    };
+    
+    if (practiceId) {
+      // Filter by specific practice
+      scanParams.FilterExpression += ' AND practiceId = :practiceId';
+      scanParams.ExpressionAttributeValues[':practiceId'] = practiceId;
+    }
 
-    const practices = result.Items || [];
-    logger.info('Found practices', { count: practices.length });
+    const result = await dynamoDb.send(new ScanCommand(scanParams));
+
+    const providers = result.Items || [];
+    logger.info('Found providers', { count: providers.length, practiceId });
 
     return {
       statusCode: 200,
@@ -32,13 +42,14 @@ export const handler = async (
         'Content-Type': 'application/json'
       }),
       body: JSON.stringify({
-        practices,
-        count: practices.length
+        providers,
+        count: providers.length,
+        practiceId
       })
     };
 
   } catch (error: any) {
-    logger.error('Failed to list practices', error);
+    logger.error('Failed to list providers', error);
 
     return {
       statusCode: 500,

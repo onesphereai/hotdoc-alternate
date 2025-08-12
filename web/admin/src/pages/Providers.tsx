@@ -2,7 +2,27 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useApi } from '../hooks/useApi';
 import { useAuth } from '../contexts/AuthContext';
-import type { Provider, Practice } from '@hotdoc-alt/models';
+interface Practice {
+  practiceId: string;
+  name: string;
+}
+
+interface Provider {
+  providerId: string;
+  tenantId: string;
+  practiceId: string;
+  name: string;
+  specialties: string[];
+  languages: string[];
+  sessionRules?: {
+    maxDailySlots: number;
+    slotDuration: number;
+    bufferMinutes: number;
+    defaultSessionDuration: number;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
 
 export function Providers() {
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -165,7 +185,7 @@ export function Providers() {
               <input
                 {...register('name', { required: 'Name is required' })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Dr. Sarah Johnson"
+                placeholder="Dr. First Last"
               />
               {errors.name && (
                 <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>

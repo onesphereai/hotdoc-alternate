@@ -82,6 +82,19 @@ export function LoginForm() {
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
+          
+          <div className="text-center">
+            <p className="text-sm text-gray-600">
+              Don't have an account?{' '}
+              <button 
+                type="button"
+                onClick={() => navigate('/signup')}
+                className="font-medium text-blue-600 hover:text-blue-500"
+              >
+                Create new practice account
+              </button>
+            </p>
+          </div>
         </form>
       </div>
     </div>

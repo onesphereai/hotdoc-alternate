@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: HotDoc-Alternate MVP Infrastructure (Core Resources Only)
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Environment name
+
+Resources:
+  # Nested Stacks
+  NetworkingStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./stacks/networking.yaml
+      Parameters:
+        Environment: !Ref Environment
+
+  IdentityStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./stacks/identity.yaml
+      Parameters:
+        Environment: !Ref Environment
+
+  DataStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./stacks/data.yaml
+      Parameters:
+        Environment: !Ref Environment
+
+Outputs:
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !GetAtt IdentityStack.Outputs.UserPoolId
+    Export:
+      Name: !Sub ${AWS::StackName}-UserPoolId
+
+  AdminUserPoolClientId:
+    Description: Cognito Admin Client ID
+    Value: !GetAtt IdentityStack.Outputs.AdminUserPoolClientId
+    Export:
+      Name: !Sub ${AWS::StackName}-AdminClientId
+
+  PatientUserPoolClientId:
+    Description: Cognito Patient Client ID
+    Value: !GetAtt IdentityStack.Outputs.PatientUserPoolClientId
+    Export:
+      Name: !Sub ${AWS::StackName}-PatientClientId
+
+  PracticesTableName:
+    Description: Practices Table Name
+    Value: !GetAtt DataStack.Outputs.PracticesTableName
+
+  ProvidersTableName:
+    Description: Providers Table Name
+    Value: !GetAtt DataStack.Outputs.ProvidersTableName
+
+  SessionsTableName:
+    Description: Sessions Table Name
+    Value: !GetAtt DataStack.Outputs.SessionsTableName
+
+  BookingsTableName:
+    Description: Bookings Table Name
+    Value: !GetAtt DataStack.Outputs.BookingsTableName

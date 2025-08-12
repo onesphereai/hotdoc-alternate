@@ -1,7 +1,7 @@
 import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { PracticeSchema } from '../../models';
-import { dynamoDb, generateId, buildKey, Logger, ValidationError, extractTenantId } from '../../lib';
+import { dynamoDb, generateId, buildKey, Logger, ValidationError, extractTenantId, addCorsHeaders } from '../../lib';
 
 export const handler = async (
   event: APIGatewayProxyEventV2
@@ -42,9 +42,9 @@ export const handler = async (
 
     return {
       statusCode: 201,
-      headers: {
+      headers: addCorsHeaders({
         'Content-Type': 'application/json'
-      },
+      }),
       body: JSON.stringify(validatedPractice)
     };
   } catch (error: any) {
@@ -53,9 +53,9 @@ export const handler = async (
     if (error.name === 'ZodError') {
       return {
         statusCode: 400,
-        headers: {
+        headers: addCorsHeaders({
           'Content-Type': 'application/json'
-        },
+        }),
         body: JSON.stringify({
           error: 'Validation failed',
           details: error.errors
@@ -65,9 +65,9 @@ export const handler = async (
 
     return {
       statusCode: 500,
-      headers: {
+      headers: addCorsHeaders({
         'Content-Type': 'application/json'
-      },
+      }),
       body: JSON.stringify({
         error: 'Internal server error'
       })

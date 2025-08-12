@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { configureAuth, signInUser, signOutUser, getCurrentUserInfo, getIdToken } from '@hotdoc-alt/lib';
+import { DEFAULT_TENANT_ID } from '../constants/config';
 
 interface User {
   username: string;
@@ -27,72 +27,58 @@ export function useAuth() {
   return context;
 }
 
-interface AuthProviderProps {
-  children: ReactNode;
-  config: {
-    userPoolId: string;
-    userPoolClientId: string;
-    region?: string;
-  };
-}
 
-export function AuthProvider({ children, config }: AuthProviderProps) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    configureAuth(config);
-    checkUser();
+    // Check for existing session on app load
+    const checkSession = async () => {
+      try {
+        // TODO: Implement real Cognito session check
+        // For now, just set loading to false
+        setLoading(false);
+      } catch (error) {
+        console.error('Session check failed:', error);
+        setLoading(false);
+      }
+    };
+    
+    checkSession();
   }, []);
 
-  const checkUser = async () => {
-    try {
-      const userInfo = await getCurrentUserInfo();
-      if (userInfo) {
-        setUser({
-          username: userInfo.user.username,
-          email: userInfo.user.signInDetails?.loginId || '',
-          tenantId: userInfo.user.userAttributes?.['custom:tenantId'],
-          role: userInfo.user.userAttributes?.['custom:role'],
-          attributes: userInfo.user.userAttributes || {}
-        });
-      }
-    } catch (error) {
-      console.error('Check user error:', error);
-    } finally {
-      setLoading(false);
+  const handleSignIn = async (email: string, password?: string) => {
+    // TODO: Implement real Cognito authentication
+    if (!password) {
+      throw new Error('Password is required');
     }
+    
+    // Temporary implementation until Cognito integration
+    setUser({
+      username: email,
+      email: email,
+      tenantId: DEFAULT_TENANT_ID, // TODO: Extract from Cognito user attributes
+      role: 'admin',
+      attributes: {}
+    });
   };
 
-  const signIn = async (email: string, password: string) => {
-    try {
-      await signInUser(email, password);
-      await checkUser();
-    } catch (error) {
-      console.error('Sign in error:', error);
-      throw error;
-    }
-  };
-
-  const signOut = async () => {
-    try {
-      await signOutUser();
-      setUser(null);
-    } catch (error) {
-      console.error('Sign out error:', error);
-      throw error;
-    }
+  const handleSignOut = async () => {
+    // TODO: Implement real Cognito sign out
+    setUser(null);
   };
 
   const getToken = async () => {
-    return await getIdToken();
+    // TODO: Return real Cognito ID token
+    return 'temp-token-placeholder';
   };
 
   const value = {
     user,
     loading,
-    signIn,
-    signOut,
+    signIn: handleSignIn,
+    signOut: handleSignOut,
     getToken
   };
 

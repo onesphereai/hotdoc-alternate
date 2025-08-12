@@ -1,6 +1,25 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { PracticeSchema, type Practice } from '@hotdoc-alt/models';
+interface Practice {
+  practiceId: string;
+  tenantId: string;
+  name: string;
+  address: {
+    line1: string;
+    suburb: string;
+    state: string;
+    postcode: string;
+    country: string;
+  };
+  services: string[];
+  hours: Array<{
+    dayOfWeek: number;
+    openTime: string;
+    closeTime: string;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+}
 import { useAuth } from '../contexts/AuthContext';
 import { useApi } from '../hooks/useApi';
 

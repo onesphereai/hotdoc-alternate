@@ -1,3 +1,5 @@
+import type { Practice, Provider } from '@hotdoc-alt/models';
+
 export interface ApiClientConfig {
   baseUrl: string;
   getAuthToken?: () => Promise<string | undefined>;
@@ -49,8 +51,8 @@ export class ApiClient {
   }
 
   // Practices
-  async createPractice(practiceData: any, tenantId: string) {
-    return this.request('/v1/practices', {
+  async createPractice(practiceData: Omit<Practice, 'practiceId' | 'createdAt' | 'updatedAt'>, tenantId: string): Promise<Practice> {
+    return this.request<Practice>('/v1/practices', {
       method: 'POST',
       headers: {
         'x-tenant-id': tenantId
@@ -59,22 +61,22 @@ export class ApiClient {
     });
   }
 
-  async getPractices(params?: { postcode?: string; radiusKm?: string }) {
+  async getPractices(params?: { postcode?: string; radiusKm?: string }): Promise<{ practices: Practice[]; count: number }> {
     const searchParams = new URLSearchParams();
     if (params?.postcode) searchParams.set('postcode', params.postcode);
     if (params?.radiusKm) searchParams.set('radiusKm', params.radiusKm);
     
     const endpoint = `/v1/practices${searchParams.toString() ? `?${searchParams}` : ''}`;
-    return this.request(endpoint);
+    return this.request<{ practices: Practice[]; count: number }>(endpoint);
   }
 
-  async getPractice(practiceId: string) {
-    return this.request(`/v1/practices/${practiceId}`);
+  async getPractice(practiceId: string): Promise<Practice> {
+    return this.request<Practice>(`/v1/practices/${practiceId}`);
   }
 
   // Providers
-  async createProvider(providerData: any, tenantId: string) {
-    return this.request('/v1/providers', {
+  async createProvider(providerData: Omit<Provider, 'providerId' | 'createdAt' | 'updatedAt'>, tenantId: string): Promise<Provider> {
+    return this.request<Provider>('/v1/providers', {
       method: 'POST',
       headers: {
         'x-tenant-id': tenantId
@@ -83,8 +85,8 @@ export class ApiClient {
     });
   }
 
-  async getProvider(providerId: string) {
-    return this.request(`/v1/providers/${providerId}`);
+  async getProvider(providerId: string): Promise<Provider> {
+    return this.request<Provider>(`/v1/providers/${providerId}`);
   }
 
   // Slots
